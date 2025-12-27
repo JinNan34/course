@@ -95,7 +95,7 @@ def set_page_background():
             )
 
 # 页面配置
-st.set_page_config(page_title="课程表工具·校园版", page_icon="🏫", layout="wide")
+st.set_page_config(page_title="课程表工具", page_icon="🏫", layout="wide")
 set_page_background()
 
 # ====================== 核心功能代码（与原功能一致，省略重复部分） ======================
@@ -176,7 +176,7 @@ def convert_df_to_csv(df):
 
 # ====================== UI布局：侧边栏+分栏（校园活力风核心） ======================
 # 主标题+校园徽章
-st.title("🏫 校园课程表智能提醒工具 · 活力版")
+st.title("🏫 校园课程表智能提醒工具 ")
 st.markdown("""<div style="background-color: #ffeb3b; color: #e65100; padding: 8px; border-radius: 8px; text-align: center;">
             📢 校园专属 · 高效学习 · 告别迟到
             </div>""", unsafe_allow_html=True)
