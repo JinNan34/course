@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import pytz
 import base64
 
-# ====================== 背景设置+深色护眼样式（新增遮罩） ======================
+# ====================== 背景设置+深色护眼样式（透明背景图核心） ======================
 def set_page_background():
     st.sidebar.header("🎨 背景自定义")
     bg_type = st.sidebar.radio("背景类型", ["纯色背景", "本地图片", "在线图片"], index=0)
@@ -53,62 +53,93 @@ def set_page_background():
             .stTabs [data-baseweb="tab"] {{
                 color: white;
             }}
+            /* 确保所有内容卡片不透明 */
+            .content-card {{
+                background-color: #1e1e1e !important;
+                opacity: 1 !important;
+            }}
             </style>
             """,
             unsafe_allow_html=True
         )
     
-    # 本地图片（深色半透明 + 遮罩层）
+    # 本地图片（自定义透明度 + 不影响文字）
     elif bg_type == "本地图片":
         uploaded_bg = st.sidebar.file_uploader("上传背景图", type=["png", "jpg", "jpeg"])
         if uploaded_bg:
+            # 新增：透明度滑块（0-100，默认30%，数值越低越透明）
+            opacity = st.sidebar.slider("背景图透明度（%）", min_value=0, max_value=100, value=30, step=5)
             bg_base64 = base64.b64encode(uploaded_bg.read()).decode()
             st.markdown(
                 f"""
                 <style>
-                /* 核心修改：添加渐变遮罩 + 背景混合 */
+                /* 核心：背景图降低透明度，不影响前景 */
                 .stApp {{
-                    background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),  /* 遮罩层：70%不透明黑色渐变 */
-                                      url("data:image/png;base64,{bg_base64}");
+                    /* 用伪元素实现透明背景图，不干扰前景 */
+                    position: relative;
+                    background-color: #121212;  /* 底层深色背景，增强文字对比 */
+                }}
+                .stApp::before {{
+                    content: "";
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-image: url("data:image/png;base64,{bg_base64}");
                     background-size: cover;
                     background-repeat: no-repeat;
                     background-attachment: fixed;
-                    background-blend-mode: overlay;  /* 遮罩与背景图混合模式 */
+                    opacity: {opacity / 100};  /* 透明度转换为0-1 */
+                    z-index: -1;  /* 放在最底层，不遮挡任何内容 */
                 }}
-                .main {{
-                    background-color: rgba(18,18,18,0.9);
-                    color: white;
+                /* 所有内容卡片强制不透明 */
+                .content-card {{
+                    background-color: #1e1e1e !important;
+                    opacity: 1 !important;
                     border-radius: 12px;
                     padding: 20px;
-                    margin: 10px;
+                    margin: 10px 0;
                 }}
                 </style>
                 """,
                 unsafe_allow_html=True
             )
     
-    # 在线图片（深色半透明 + 遮罩层）
+    # 在线图片（自定义透明度 + 不影响文字）
     else:
         bg_url = st.sidebar.text_input("背景图链接", placeholder="https://xxx.jpg", value="https://wallpaperaccess.com/full/1776188.jpg")
         if bg_url:
+            # 新增：透明度滑块
+            opacity = st.sidebar.slider("背景图透明度（%）", min_value=0, max_value=100, value=30, step=5)
             st.markdown(
                 f"""
                 <style>
-                /* 核心修改：添加渐变遮罩 + 背景混合 */
                 .stApp {{
-                    background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),  /* 遮罩层：70%不透明黑色渐变 */
-                                      url("{bg_url}");
+                    position: relative;
+                    background-color: #121212;  /* 底层深色背景，增强文字对比 */
+                }}
+                .stApp::before {{
+                    content: "";
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-image: url("{bg_url}");
                     background-size: cover;
                     background-repeat: no-repeat;
                     background-attachment: fixed;
-                    background-blend-mode: overlay;  /* 遮罩与背景图混合模式 */
+                    opacity: {opacity / 100};  /* 自定义透明度 */
+                    z-index: -1;  /* 底层显示，不遮挡内容 */
                 }}
-                .main {{
-                    background-color: rgba(18,18,18,0.9);
-                    color: white;
+                /* 所有内容卡片强制不透明 */
+                .content-card {{
+                    background-color: #1e1e1e !important;
+                    opacity: 1 !important;
                     border-radius: 12px;
                     padding: 20px;
-                    margin: 10px;
+                    margin: 10px 0;
                 }}
                 </style>
                 """,
@@ -116,7 +147,7 @@ def set_page_background():
             )
 
 # 页面配置
-st.set_page_config(page_title="课程表工具·深色版", page_icon="🌙", layout="wide")
+st.set_page_config(page_title="课程表工具", page_icon="🌙", layout="wide")
 set_page_background()
 
 # ====================== 核心功能代码（无修改） ======================
@@ -195,23 +226,22 @@ def validate_course_csv(csv_df):
 def convert_df_to_csv(df):
     return df.to_csv(index=False, encoding="utf-8-sig")
 
-# ====================== UI布局：深色护眼风核心（无修改） ======================
+# ====================== UI布局：内容卡片添加不透明类 ======================
 # 渐变标题
 st.markdown("""
 <h1 style="background: linear-gradient(to right, #64b5f6, #2196f3); -webkit-background-clip: text; color: transparent; text-align: center;">
-🌙 校园课程表智能提醒工具 · 深色护眼版
+    校园课程表智能提醒工具
 </h1>
 """, unsafe_allow_html=True)
 
-# 主区域：卡片式分栏
+# 主区域：卡片式分栏（所有内容卡片添加 content-card 类，强制不透明）
 col1, col2 = st.columns([1, 2])
 
 # 左栏：功能入口（CSV导入+手动添加）
 with col1:
-    st.markdown("""<div style="background-color: #1e1e1e; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
-                <h3 style="color: #64b5f6;">📤 CSV批量导入</h3>
-                </div>""", unsafe_allow_html=True)
-    
+    # 关键：添加 content-card 类，确保卡片不透明
+    st.markdown('<div class="content-card">', unsafe_allow_html=True)
+    st.subheader("📤 CSV批量导入")
     template_df = pd.DataFrame([
         ["Python程序设计", "周一", "08:00", "09:40", "教学楼A101", "张老师"],
         ["人工智能导论", "周三", "14:00", "15:40", "实验楼B202", "李老师"]
@@ -245,11 +275,11 @@ with col1:
                     st.success(f"✅ 导入{len(valid_df)}门课程！")
         except Exception as e:
             st.error(f"❌ 读取失败：{str(e)}")
+    st.markdown('</div>', unsafe_allow_html=True)  # 关闭卡片
     
-    # 手动添加课程
-    st.markdown("""<div style="background-color: #1e1e1e; padding: 20px; border-radius: 12px;">
-                <h3 style="color: #64b5f6;">✏️ 手动添加课程</h3>
-                </div>""", unsafe_allow_html=True)
+    # 手动添加课程（添加 content-card 类）
+    st.markdown('<div class="content-card">', unsafe_allow_html=True)
+    st.subheader("✏️ 手动添加课程")
     course_name = st.text_input("课程名称", placeholder="Python程序设计")
     weekday = st.selectbox("星期", ["周一", "周二", "周三", "周四", "周五", "周六", "周日"])
     start_time = st.text_input("开始时间（HH:MM）", placeholder="08:00")
@@ -272,14 +302,13 @@ with col1:
                 new_row = pd.DataFrame([new_course])
                 st.session_state.courses = pd.concat([st.session_state.courses, new_row], ignore_index=True)
                 st.success("✅ 添加成功！")
+    st.markdown('</div>', unsafe_allow_html=True)  # 关闭卡片
 
-# 右栏：提醒+课程表+推荐
+# 右栏：提醒+课程表+推荐（添加 content-card 类）
 with col2:
     # 近期提醒卡片
-    st.markdown("""<div style="background-color: #1e1e1e; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
-                <h3 style="color: #64b5f6;">🔔 15分钟内课程提醒</h3>
-                </div>""", unsafe_allow_html=True)
-    
+    st.markdown('<div class="content-card">', unsafe_allow_html=True)
+    st.subheader("🔔 15分钟内课程提醒")
     upcoming_courses = get_upcoming_courses(st.session_state.courses)
     if upcoming_courses:
         for course in upcoming_courses:
@@ -295,12 +324,11 @@ with col2:
             )
     else:
         st.info("😌 暂无近期课程，放心学习~")
+    st.markdown('</div>', unsafe_allow_html=True)  # 关闭卡片
     
     # 课程表展示
-    st.markdown("""<div style="background-color: #1e1e1e; padding: 20px; border-radius: 12px;">
-                <h3 style="color: #64b5f6;">📋 我的课程表</h3>
-                </div>""", unsafe_allow_html=True)
-    
+    st.markdown('<div class="content-card">', unsafe_allow_html=True)
+    st.subheader("📋 我的课程表")
     if not st.session_state.courses.empty:
         # 按星期筛选
         filter_weekday = st.selectbox("筛选星期", ["全部"] + ["周一", "周二", "周三", "周四", "周五", "周六", "周日"])
@@ -324,3 +352,4 @@ with col2:
     if st.button("🗑️ 清空课程表", type="secondary"):
         st.session_state.courses = pd.DataFrame(columns=COURSE_COLUMNS)
         st.success("✅ 课程表已清空！")
+    st.markdown('</div>', unsafe_allow_html=True)  # 关闭卡片
