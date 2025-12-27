@@ -66,7 +66,8 @@ def check_conflict(new_course, existing_courses):
     # 筛选同一星期的课程
     same_weekday = existing_courses[existing_courses["星期"] == new_course["星期"]]
     if same_weekday.empty:
-        return False, None  # 修复：无冲突时返回(Flase, None)，避免解包错误
+        # 修复：无冲突时返回(Flase, None)，保证返回值数量统一
+        return False, None
     
     # 转换时间为datetime格式，便于对比
     def str_to_time(time_str):
@@ -82,6 +83,7 @@ def check_conflict(new_course, existing_courses):
         # 时间重叠判定规则：新课程开始时间 < 已有课程结束时间，且新课程结束时间 > 已有课程开始时间
         if new_start < exist_end and new_end > exist_start:
             return True, course["课程名称"]
+    # 修复：无冲突时返回(Flase, None)，保证返回值数量统一
     return False, None
 
 def recommend_materials(course_name):
